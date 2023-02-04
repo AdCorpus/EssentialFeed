@@ -11,10 +11,24 @@ import EssentialFeed
 final class EssentialFeedAPIEndToEndTests: XCTestCase {
 
     func test_endToEndTestServerGETResult_matchesFixedTestAccountData() {
+        switch getFeedResult() {
+        case let .success(items)?:
+            XCTAssertEqual(items.count, 8, "Expected 8 items in the test account feed")
+          
+            items.enumerated().forEach { (index, item) in
+                XCTAssertEqual(item, expectedItem(at: index), "Unexpected item value at index \(index)")
+            }
+        case let .failure(error)?:
+            XCTFail("Expected successful feed result, got \(error) instead")
+        default:
+            XCTFail("Expected successful feed result, got no result instead")
+        }
+    }
+    
+    // MARK: - Helpers
+    private func getFeedResult() -> LoadFeedResult? {
         let testServerURL = URL(string: "https://essentialdeveloper.com/feed-case-study/test-api/feed")!
-        
-//        let testServerURL = URL(string:"https://static1.squarespace.com/static/5891c5b8d1758ec68ef5dbc2/t/5c52cdd0b8a045df091d2fff/1548930512083/feed-case-study-test-api-feed.json")!
-        
+    
         let client = URLSessionHTTPClient(session: URLSession(configuration: .ephemeral))
         let loader = RemoteFeedLoader(url: testServerURL, client: client)
         
@@ -26,22 +40,8 @@ final class EssentialFeedAPIEndToEndTests: XCTestCase {
             expectation.fulfill()
         }
         wait(for: [expectation], timeout: 5.0)
-        
-        switch receivedResult {
-        case let .success(items)?:
-            XCTAssertEqual(items.count, 8, "Expected 8 items in the test account feed")
-          
-//            items.enumerated().forEach { (index, item) in
-//                XCTAssertEqual(item, expectedItem(at: index), "Unexpected item value at index \(index)")
-//            }
-        case let .failure(error)?:
-            XCTFail("Expected successful feed result, got \(error) instead")
-        default:
-            XCTFail("Expected successful feed result, got no result instead")
-        }
+        return receivedResult
     }
-    
-    //MARK: - Helpers
     
     private func expectedItem(at index: Int) -> FeedItem {
         return FeedItem(id: id(at: index),
